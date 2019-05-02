@@ -66,7 +66,6 @@ class Transaction {
       const result = await this.signedTx({ sender: privateKey }, utxos, receiver, amount - fee);
       console.log(result);
     });
-
   }
 
   async signedTx(privateKeyObj, utxos, receiver, amount) {
