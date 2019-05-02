@@ -1,0 +1,19 @@
+{
+  "name": "test-cardano-wallet-npm",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.18.0",
+    "bitcore-lib": "^8.3.0",
+    "bitcore-mnemonic": "^8.3.0",
+    "cardano-wallet": "^0.3.0",
+    "crypto-random-string": "^2.0.0",
+    "text-encoder": "0.0.4"
+  }
+}
