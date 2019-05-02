@@ -49,6 +49,7 @@ class Transaction {
     return { txBuilder, selectInputs };
   }
 
+  // receiver pay for fee
   sendMoney(privateKey, sender, receiver, amount) {
     this.getUtxos(sender).then((utxos) => {
       let inputs = [];
