@@ -1,6 +1,7 @@
 const axios = require('axios');
 const Cardano = require('cardano-wallet');
 const { local } = require('./env.json')
+const Bignumber = require('bignumber.js')
 
 const PROTOCOL_MAGICS = { mainnet: 764824073, testnet: 1097911063 }
 
@@ -18,17 +19,26 @@ class Transaction {
     }
   }
 
-  async sendTx(signedTx) {
-    const { status, data } = await axios({
-      method: 'post',
-      url: `${local.bridgeUrl}/testnet/utxos/${address}`,
-      data: { signedTx }
-    });
-    if (status === 200) {
-      console.log(data);
-      return data;
-    } else {
-      throw new Error('has an Error when get utxos');
+  async sendTx(signedTx, i, id, out) {
+    console.log(i, signedTx);
+    try {
+      const { status, data } = await axios({
+        method: 'post',
+        url: `${local.bridgeUrl}/testnet/txs/signed`,
+        data: { signedTx }
+      });
+      if (status === 200) {
+        console.log(data);
+        return [id, out];
+      } else {
+        throw new Error('has an Error when sendTX');
+      }
+    } catch (error) {
+      console.log("ERRRRR:", error.message);
+      if (i < 10) {
+        return await this.sendTx(signedTx, i + 1, id, out)
+      }
+
     }
   }
 
@@ -50,15 +60,15 @@ class Transaction {
   }
 
   // receiver pay for fee
-  sendMoney(privateKey, sender, receiver, amount) {
-    this.getUtxos(sender).then((utxos) => {
+  async sendMoney(privateKey, sender, receiver, amount) {
+    this.getUtxos(sender).then(async (utxos) => {
       let inputs = [];
       for (let i = 0; i < utxos.length; i++) {
-        const { cuId, cuOutIndex, cuCoins: { getCoin }, cuAddress } = utxos[i];
+        const { txid, index, coin, address } = utxos[i];
         inputs.push({
-          sender: cuAddress,
-          pointer: { id: cuId, index: cuOutIndex },
-          value: getCoin
+          sender: address,
+          pointer: { id: txid, index },
+          value: coin
         })
       }
       const fee_algorithm = Cardano.LinearFeeAlgorithm.default();
@@ -73,6 +83,8 @@ class Transaction {
       throw new Error('Don\'t have utxos!');
     }
     const { txBuilder, selectInputs } = this.getUnsignedTx(utxos, receiver, amount);
+    const output = txBuilder.get_output_total().to_str();
+    console.log(output);
     const unsignedTx = txBuilder.make_transaction();
     const txFinalizer = new Cardano.TransactionFinalized(unsignedTx);
     const setting = Cardano.BlockchainSettings.from_json({
@@ -90,9 +102,15 @@ class Transaction {
       txFinalizer.add_witness(witness);
     });
 
+    const id = txFinalizer.id().to_hex()
+    console.log("transaction id: ", txFinalizer.id().to_hex());
     const signedTx = txFinalizer.finalize();
+    const signedTxString = Buffer.from(signedTx.to_hex(), 'hex').toString('base64');
+
     console.log("ready to send transaction: ", Buffer.from(signedTx.to_hex(), 'hex').toString('base64'));
-    return await sendTx(signedTx);
+
+    const data = await this.sendTx(signedTxString, 0, id, ((output * 1000000) - 1168609).toString() )
+    return data
   }
 
   selectInputs(inputs, receiver, amount, fee_algorithm, outputPolicy) {
@@ -154,17 +172,53 @@ class Transaction {
 }
 
 const transaction = new Transaction();
-transaction.getUtxos('2cWKMJemoBakUycfSxBSjvukHYk45qU1S7tmuE8uk68vC2qVjTB8zkpwcrevdoQyJGUNj').then((utxos) => {
-  let inputs = [];
-  for (let i = 0; i < utxos.length; i++) {
-    const { cuId, cuOutIndex, cuCoins: { getCoin }, cuAddress } = utxos[i];
-    inputs.push({
-      sender: cuAddress,
-      pointer: { id: cuId, index: cuOutIndex },
-      value: getCoin
-    })
-  }
-  transaction.signedTx({ "2cWKMJemoBakUycfSxBSjvukHYk45qU1S7tmuE8uk68vC2qVjTB8zkpwcrevdoQyJGUNj": "004342b541c0f14f7b090b0f465d051db1fc5c94d6b58c8660fc727199a88158e9397a0b3ca15adc03b1a1e900f1e03d0a835cdfab606b10a5ddce768c627ff2233ca61f9df87c74465f0b49877b305001d1982aabdc3bcd8a54b58909e8782c" }, inputs, '2cWKMJemoBahjEXTGWUh8mtfZMTrNRXZjPLUkrYa2E4YFR1duyEWsKXoUfYXjRoQkJw7Q', 1071688);
-});
+// transaction.getUtxos('2cWKMJemoBajb7eesvEnLBupWBr6oH81TGYyH81dVWUvSX7TRvPdYb1NMXtfHpibnZiXr').then((utxos) => {
+//   let inputs = [];
+//   for (let i = 0; i < utxos.length; i++) {
+//     const { txid, index, coin, address } = utxos[i];
+//     inputs.push({
+//       sender: address,
+//       pointer: { id: txid, index },
+//       value: coin
+//     })
+//   }
+//   transaction.signedTx({ "2cWKMJemoBajb7eesvEnLBupWBr6oH81TGYyH81dVWUvSX7TRvPdYb1NMXtfHpibnZiXr": "d80f809e1ec4db79684c0defb55ee066fdee05d0fbc3cc76bd955f87c168e954d746a91e8975bc250eda862be14df0aabf0d7552f01898547698b3fef60bf4780380a0775103f2aefda3aff6bf7892eb3349fe2fbfea0fd4a6acc54f133fd614" }, inputs, '2cWKMJemoBakkdiHyY8Wh1xwB2yr1PDzatKrgmMJa5WBeQwm3xZ1bxPsjsCSZcTQ7LshK', 2000000);
+// });
+
+async function test() {
+  const inputs1 = [];
+  inputs1.push({
+    sender: '2cWKMJemoBakpjUvY8RNWQvn6wJF8Fzg53JHLmdJgQMTpCrAiVFX2axTFfjrYD2iHczGd',
+    pointer: { id: 'efb501004bebff4acf21072fe48cdb8332a3ea9bacec02f447ea0f9ae4ed3de2', index: 1 },
+    value: "1334227058"
+  })
+  const inputs2 = [];
+
+  const data = await transaction.signedTx({ "2cWKMJemoBakpjUvY8RNWQvn6wJF8Fzg53JHLmdJgQMTpCrAiVFX2axTFfjrYD2iHczGd": "00992d1208ce0029e31f0b6a5e8d3cd9b2beeafdd273673d5d3adf49c768e95491a49b8d6db0ceb9225bdbbdcdcb757c3dec0a3c3c3a6fae7a9122e23823d4461b4471ad1db174220c5047c0a16a3022140e8746db9cdba73a0c184aa54bcdf5" }, inputs1, '2cWKMJemoBakkdiHyY8Wh1xwB2yr1PDzatKrgmMJa5WBeQwm3xZ1bxPsjsCSZcTQ7LshK', 1000000);
+  console.log(data);
+  inputs2.push({
+    sender: '2cWKMJemoBakpjUvY8RNWQvn6wJF8Fzg53JHLmdJgQMTpCrAiVFX2axTFfjrYD2iHczGd',
+    pointer: { id: data[0], index: 1 },
+    value: data[1]
+  })
+  transaction.signedTx({ "2cWKMJemoBakpjUvY8RNWQvn6wJF8Fzg53JHLmdJgQMTpCrAiVFX2axTFfjrYD2iHczGd": "00992d1208ce0029e31f0b6a5e8d3cd9b2beeafdd273673d5d3adf49c768e95491a49b8d6db0ceb9225bdbbdcdcb757c3dec0a3c3c3a6fae7a9122e23823d4461b4471ad1db174220c5047c0a16a3022140e8746db9cdba73a0c184aa54bcdf5" }, inputs2, '2cWKMJemoBakkdiHyY8Wh1xwB2yr1PDzatKrgmMJa5WBeQwm3xZ1bxPsjsCSZcTQ7LshK', 1000000);
+}
+
+test();
+
+async function getBalance(transaction, address) {
+  let balance = 0
+  const listUtxo = await transaction.getUtxos(address)
+  balance = listUtxo.reduce((accumulator, currentValue) => {
+    return Bignumber(accumulator).plus(currentValue.coin)
+  }, 0)
+  console.log(balance.toString());
+  return balance.toString()
+}
+
+// getBalance(transaction, '2cWKMJemoBajb7eesvEnLBupWBr6oH81TGYyH81dVWUvSX7TRvPdYb1NMXtfHpibnZiXr')
+//   .catch(error => {
+//   console.log("EEE", error);
+// });
 
 module.exports = Transaction;

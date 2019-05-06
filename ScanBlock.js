@@ -63,7 +63,7 @@ const scanData = async () => {
       // check is valid with prev Hash => if not revert => remove transaction in block => call scanData() again
       // Get list transaction in block
       let transactions;
-      if(cbeTotalSent.getCoin === '0') transactions = ['rong'];
+      if (cbeTotalSent.getCoin === '0') transactions = ['rong'];
       else transactions = await getTransaction(cbeBlkHash);
       console.log('TRANS:', transactions);
       console.log('--------------------------------');
@@ -76,10 +76,75 @@ const scanData = async () => {
   return newestPageData;
 }
 
-// getNewestBlock().then(data => console.log(data));
-scanData().then(data => {
-  console.log('--------------------------');
-  let currentBlock = data[0] * 10 + data[1].length - 1;
-  console.log(currentBlock);
-  console.log('--------------------------');
-});
+// // getNewestBlock().then(data => console.log(data));
+// scanData().then(data => {
+//   console.log('--------------------------');
+//   let currentBlock = data[0] * 10 + data[1].length - 1;
+//   console.log(currentBlock);
+//   console.log('--------------------------');
+// });
+
+
+const getBlock = async (index) => {
+  const { status, data } = await axios({
+    method: 'get',
+    url: `${local.explorerUrl}/api/blocks/pages/${index ? `?page=${index}` : ''}`,
+  });
+  if (status === 200 && data.Right) {
+    return data.Right;
+  } else {
+    throw new Error('Error when get block!');
+  }
+}
+
+const getBlockHash = async (index) => {
+  const { status, data } = await axios({
+    method: 'get',
+    url: `${local.explorerUrl}/api/blocks/pages/${index ? `?page=${index}` : ''}`,
+  });
+  if (status === 200 && data.Right) {
+    console.log(data.Right);
+    return data.Right && data.Right[1] && data.Right[1][0] && data.Right[1][0].cbeBlkHash;
+  } else {
+    throw new Error('Error when get block!');
+  }
+}
+
+const getBlockHeight = async () => {
+  const { status, data } = await axios({
+    method: 'get',
+    url: `${local.explorerUrl}/api/blocks/pages/total`
+  })
+  if (status === 200 && data.Right) {
+    return data.Right + 1
+  } else {
+    throw new Error('Error when get block!')
+  }
+}
+
+
+const getBlockInfo = async (blockHash) => {
+  const { status, data } = await axios({
+    method: 'get',
+    url: `${local.explorerUrl}/api/blocks/summary/${blockHash}`,
+  });
+  if (status === 200 && data.Right) {
+    return data.Right;
+  } else {
+    throw new Error('Error when get block!');
+  }
+}
+
+const getTxsInBlock = async (blockHash) => {
+  const { status, data } = await axios({
+    method: 'get',
+    url: `${local.explorerUrl}/api/blocks/txs/${blockHash}`,
+  });
+  if (status === 200 && data.Right) {
+    return data.Right;
+  } else {
+    throw new Error('Error when get transaction in block!');
+  }
+}
+
+getBlockHeight().then(data => console.log(data));

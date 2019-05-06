@@ -1,13 +1,15 @@
 const KeyManage = require('./KeysDefine');
 const Cardano = require('cardano-wallet');
-const Transaction = require('./Transaction');
+// const Transaction = require('./Transaction');
 
 const keyManage = new KeyManage();
 keyManage.recover('a85067101257914826a26ee80bed2d7ab9fa4faec455175e7837c62faa68e95493df38e2aa61769bd6fd3f2f12fe6d50aa92f67652c186a13c5c5bbfca76e06c74ff60b3bad1cb0f76d272535a542334ce15a1b24826249dd4e720e65477abd5', 0);
 
 try {
-    const address = keyManage.generateAddress(2);
+    const address = keyManage.generateAddress(5);
     console.log("ADDRESS:", address);
+    const priv = keyManage.generatePrivKey(5);
+    console.log("priv:", priv);
 } catch(error) {
     console.log(error);
 }
