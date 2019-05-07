@@ -30,12 +30,12 @@ console.log("Address m/bip44/ada/'0/0/0", address.to_base58());
 // assuming the xprv and the settings from the example above are available in this scope
 
 const inputs = [
-    { pointer: { id: "00c81a2c97207c7fe8af6afb19104451a30ca6b37f2d1eec648b5fec07da4813", index: 1 }, value: '648170048' },
+    { pointer: { id: "477ccef98d9ada15e4e6b7906301c720eaec0a98bb0fad91c7de02fa4ad50d52", index: 1 }, value: '100048' },
     // { pointer: { id: "9e63eb9cc2322f5f00bfb7953274d03683979e4118ae01eebe62360171b1419a", index: 1 }, value: '348170048' },
     // { pointer: { id: "0def10fc91ccf33498e45694b13ef8992ef3d4174cb34e9df827c75f7f913de8", index: 1 }, value: '100000000' }
 ];
 const outputs = [
-    { address: "2cWKMJemoBahvvHPYGJW3Y7Z21CyittjXddtVzELySKPVBiT38eAA9NJrUi3rpwMG7yYV", value: "648170048" }
+    { address: "2cWKMJemoBahvvHPYGJW3Y7Z21CyittjXddtVzELySKPVBiT38eAA9NJrUi3rpwMG7yYV", value: "50048" }
 ];
 
 // the fee algorithm (i.e. the function to compute the fees of a transaction)
